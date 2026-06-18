@@ -57,6 +57,8 @@ spec:
             secretKeyRef:
               name: backend-secret
               key: DB_PASSWORD
+        - name: LOG_FILE
+          value: "/var/log/app/app.log"
         livenessProbe:
           httpGet:
             path: /health/live
@@ -80,6 +82,29 @@ spec:
           limits:
             cpu: "500m"
             memory: "256Mi"
+        volumeMounts:
+        - name: log-volume
+          mountPath: /var/log/app
+      - name: fluent-bit
+        image: fluent/fluent-bit:2.2
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "32Mi"
+          limits:
+            cpu: "100m"
+            memory: "64Mi"
+        volumeMounts:
+        - name: log-volume
+          mountPath: /var/log/app
+        - name: fluent-bit-config
+          mountPath: /fluent-bit/etc/
+      volumes:
+      - name: log-volume
+        emptyDir: {}
+      - name: fluent-bit-config
+        configMap:
+          name: fluent-bit-sidecar-config
 ---
 apiVersion: v1
 kind: Service
@@ -92,4 +117,5 @@ spec:
   ports:
   - port: 5000
     targetPort: 5000
+    name: http
   type: ClusterIP

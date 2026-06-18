@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-sidecar-config
+  namespace: backend
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         5
+        Daemon        Off
+        Log_Level     info
+
+    [INPUT]
+        Name          tail
+        Path          /var/log/app/*.log
+        Tag           backend.*
+        Refresh_Interval 5
+
+    [FILTER]
+        Name          record_modifier
+        Match         backend.*
+        Record        app backend
+        Record        namespace backend
+        Record        environment production
+
+    [OUTPUT]
+        Name          loki
+        Match         backend.*
+        Host          loki.logging.svc.cluster.local
+        Port          3100
+        Labels        job=backend,app=user-manager
+        Line_Format   json
