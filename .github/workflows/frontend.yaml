@@ -4,7 +4,7 @@ on:
   push:
     branches: [Latest]
     paths:
-      - 'frontend/**'
+      - 'user-manager/frontend/**'
       - '.github/workflows/frontend.yaml'
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
+          context: ./user-manager/frontend
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/user-manager-frontend:latest
