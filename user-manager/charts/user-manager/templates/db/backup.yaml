@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backup-sa
+  namespace: db
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: db
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: backup-sa
+          restartPolicy: OnFailure
+          containers:
+          - name: postgres-backup
+            image: postgres:15-alpine
+            env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: S3_BUCKET
+              value: {{ .Values.backup.s3Bucket | quote }}
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.backup.awsRegion | quote }}
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting backup..."
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_FILE="/tmp/backup_${TIMESTAMP}.sql.gz"
+              pg_dump -h postgres-service.db.svc.cluster.local \
+                      -U ${POSTGRES_USER} \
+                      -d ${POSTGRES_DB} | gzip > ${BACKUP_FILE}
+              echo "Backup created: ${BACKUP_FILE}"
+              apk add --no-cache aws-cli
+              aws s3 cp ${BACKUP_FILE} s3://${S3_BUCKET}/backups/backup_${TIMESTAMP}.sql.gz
+              echo "Backup uploaded to S3 successfully"
+            resources:
+              requests:
+                cpu: "100m"
+                memory: "128Mi"
+              limits:
+                cpu: "200m"
+                memory: "256Mi"

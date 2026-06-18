@@ -5,8 +5,9 @@ metadata:
   namespace: frontend
   labels:
     app: frontend
+    {{- include "user-manager.labels" . | nindent 4 }}
 spec:
-  replicas: 2
+  replicas: {{ .Values.frontend.replicas }}
   selector:
     matchLabels:
       app: frontend
@@ -22,8 +23,8 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: shobitk/user-manager-frontend:latest
-        imagePullPolicy: Always
+        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+        imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
         ports:
         - containerPort: 80
         livenessProbe:
@@ -44,21 +45,8 @@ spec:
           failureThreshold: 3
         resources:
           requests:
-            cpu: "50m"
-            memory: "64Mi"
+            cpu: {{ .Values.frontend.resources.requests.cpu }}
+            memory: {{ .Values.frontend.resources.requests.memory }}
           limits:
-            cpu: "200m"
-            memory: "128Mi"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend-service
-  namespace: frontend
-spec:
-  selector:
-    app: frontend
-  ports:
-  - port: 80
-    targetPort: 80
-  type: ClusterIP
+            cpu: {{ .Values.frontend.resources.limits.cpu }}
+            memory: {{ .Values.frontend.resources.limits.memory }}

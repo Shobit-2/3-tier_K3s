@@ -1,0 +1,81 @@
+global:
+  domain: shobitkhandelwal.space
+
+frontend:
+  image:
+    repository: shobitk/user-manager-frontend
+    tag: latest
+    pullPolicy: Always
+  replicas: 2
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+  hpa:
+    minReplicas: 2
+    maxReplicas: 5
+    cpuTargetUtilization: 70
+
+backend:
+  image:
+    repository: shobitk/user-manager-backend
+    tag: latest
+    pullPolicy: Always
+  replicas: 2
+  resources:
+    requests:
+      cpu: "150m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+  hpa:
+    minReplicas: 2
+    maxReplicas: 10
+    cpuTargetUtilization: 50
+  config:
+    port: "5000"
+    dbHost: "postgres-service.db.svc.cluster.local"
+    dbPort: "5432"
+    dbName: "usermanager"
+    dbUser: "postgres"
+    nodeEnv: "production"
+  secret:
+    dbPassword: "StrongPass@2024"
+
+db:
+  image:
+    repository: postgres
+    tag: "15-alpine"
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  storage:
+    size: 5Gi
+    storageClassName: local-path
+  secret:
+    postgresDb: "usermanager"
+    postgresUser: "postgres"
+    postgresPassword: "StrongPass@2024"
+
+backup:
+  schedule: "0 2 * * *"
+  s3Bucket: "user-manager-db-backups-shobit"
+  awsRegion: "us-east-1"
+
+ingress:
+  className: nginx
+  clusterIssuer: letsencrypt-prod
+  frontend:
+    host: app.shobitkhandelwal.space
+    secretName: frontend-tls
+  backend:
+    host: api.shobitkhandelwal.space
+    secretName: backend-tls

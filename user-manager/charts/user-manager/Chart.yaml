@@ -1,0 +1,6 @@
+apiVersion: v2
+name: user-manager
+description: A 3-tier user management application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
