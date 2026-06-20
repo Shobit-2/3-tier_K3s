@@ -1,4 +1,3 @@
-# Frontend - only accepts traffic from ingress
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -20,12 +19,17 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
+          kubernetes.io/metadata.name: backend
+    ports:
+    - port: 5000
+  - to:
+    - namespaceSelector:
+        matchLabels:
           kubernetes.io/metadata.name: kube-system
     ports:
     - port: 53
       protocol: UDP
 ---
-# Backend - accepts from ingress, can reach db
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -43,6 +47,10 @@ spec:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: ingress-nginx
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: frontend
   egress:
   - to:
     - namespaceSelector:
@@ -58,7 +66,6 @@ spec:
     - port: 53
       protocol: UDP
 ---
-# Database - only accepts from backend
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
